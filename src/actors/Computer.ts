@@ -20,8 +20,13 @@ Computer.add(
     new State(builtin),
     (iterable: any, func: Func) => {
       for (const thing of iterable) {
-        func.invoke(thing);
+        const result = func.invoke(thing);
+        if (result) {
+          return result;
+        }
       }
+
+      return null
     }
   )
 );
