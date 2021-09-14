@@ -26,7 +26,7 @@ Computer.add(
         }
       }
 
-      return null
+      return false;
     }
   )
 );

@@ -1,0 +1,24 @@
+isAlienSorted := fn words order {
+  Computer.DO.return false
+}
+
+examples := [
+  {
+    "input": [["hello","leetcode"], "hlabcdefgijkmnopqrstuvwxyz"],
+    "output": true
+  },
+  {
+    "input": [["word","world","row"], "worldabcefghijkmnpqstuvxyz"],
+    "output": false
+  },
+  {
+    "input": [["apple","app"], "abcdefghijklmnopqrstuvwxyz"],
+    "output": false
+  }
+]
+
+Computer.DO.loop examples (fn example {
+  Computer.DO.print "Input: " example["input"]
+  Computer.DO.print "Expected Output: " example["output"]
+  Computer.DO.print "Actual Output: " (DO isAlienSorted example["input"][0] example["input"][1])
+})

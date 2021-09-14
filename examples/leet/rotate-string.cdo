@@ -2,7 +2,7 @@ rotateString := fn str goal {
   current := str
   String.DO.getLength str -> len
 
-  Computer.DO.loop (len times)(fn {
+  Computer.DO.loop (len times) (fn {
     if current = goal DO {
       Computer.DO.return true
     } else DO {
@@ -12,5 +12,9 @@ rotateString := fn str goal {
     }
   }) -> result
 
-  Computer.DO.return (result or false)
+  Computer.DO.return result
 }
+
+Computer.DO.print (DO rotateString "abcde" "cdeab")
+Computer.DO.print (DO rotateString "aaaaa" "aaaaa")
+Computer.DO.print (DO rotateString "abc" "def")

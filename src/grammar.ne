@@ -170,8 +170,8 @@ call -> command __ args {% ([command,, args]) => ({...command, args}) %}
 
 command -> ID _ DOT _ "DO" _  DOT _ ID {% ([actor,,,,,,,, action]) => ({actor, action}) %}
 
-listLiteral -> LBRACK _ listBody _ RBRACK {% ([,,elements]) => ({ type: "LIST", elements }) %}
-             | LBRACK _ RBRACK            {% () => ({ type: "LIST", elements: [] }) %}
+listLiteral -> LBRACK ___ listBody ___ RBRACK {% ([,,elements]) => ({ type: "LIST", elements }) %}
+             | LBRACK _ RBRACK                {% () => ({ type: "LIST", elements: [] }) %}
 
 listBody -> expression _ COMMA ___ listBody {% ([expr,,,,body]) => [expr, ...body] %}
           | expression                      {% ([expr]) => [expr] %}

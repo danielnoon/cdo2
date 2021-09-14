@@ -1,0 +1,23 @@
+expand := fn wall {
+  
+}
+
+leastBricks := fn wall {
+
+}
+
+examples := [
+  {
+    "input": [[1,2,2,1],[3,1,2],[1,3,2],[2,4],[3,1,2],[1,3,1,1]],
+    "output": 2
+  },
+  {
+    "input": [[1],[1],[1]],
+    "output": 3
+  }
+]
+
+Computer.DO.loop examples (fn example {
+  Computer.DO.print "Input: " example["input"]
+  Computer.DO.print "Output: " example["output"]
+})
