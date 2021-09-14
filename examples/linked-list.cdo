@@ -1,0 +1,49 @@
+actor LinkedList {
+  create := fn {
+    container := { "size": 0 }
+    Computer.DO.return container
+  }
+
+  append := fn list value {
+    list["size"] := list["size"] + 1
+
+    if (DO Dict.has list "root") DO {
+      helper := fn current {
+        if (DO Dict.has current "next") DO {
+          DO helper current["next"]
+        } else DO {
+          current["next"] := { "value": value }
+        }
+      }
+
+      DO helper list["root"]
+    } else DO {
+      list["root"] := { "value": value }
+    }
+  }
+
+  get := fn list index {
+    if (index > list["size"]) DO {
+      Computer.DO.return
+    }
+
+    helper := fn current i {
+      if (i = index) DO {
+        Computer.DO.return current["value"]
+      } else DO {
+        Computer.DO.return (DO helper current["next"] (i + 1))
+      }
+    }
+
+    Computer.DO.return (DO helper list["root"] 0)
+  }
+}
+
+LinkedList.DO.create -> list
+LinkedList.DO.append list "A"
+LinkedList.DO.append list "B"
+LinkedList.DO.append list "C"
+LinkedList.DO.append list "D"
+LinkedList.DO.append list "E"
+
+Computer.DO.print (DO LinkedList.get list 2)

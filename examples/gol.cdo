@@ -1,0 +1,74 @@
+actor GOL {
+  init := fn x y {
+    board := []
+    Computer.DO.loop (y times) (fn i {
+      board[i] := []
+      Computer.DO.loop (x times) (fn j {
+        board[i][j] := "-"
+      })
+    })
+    Computer.DO.return board
+  }
+
+  randomize := fn board {
+    List.DO.map board (fn row { DO List.copy row }) -> board
+    Computer.DO.loop ((DO List.length board) times) (fn i {
+      Computer.DO.loop ((DO List.length board[i]) times) (fn j {
+        Computer.DO.getRandomInt 0 100 -> r
+        if (r > 50) DO {
+          board[i][j] := "#"
+        } else DO {
+          board[i][j] := "-"
+        }
+      })
+    })
+    Computer.DO.return board
+  }
+
+  print := fn board {
+    List.DO.map board (fn line { DO List.join "" line }) -> lines
+    Computer.DO.return (DO List.join "\n" lines)
+  }
+
+  tick := fn board {
+    List.DO.map board (fn line { DO List.copy line }) -> newBoard
+    Computer.DO.loop ((DO List.length board) times) (fn i {
+      Computer.DO.loop ((DO List.length board[i]) times) (fn j {
+        neighbors := 0
+
+        Computer.DO.loop [-1, 0, 1] (fn k {
+          Computer.DO.loop [-1, 0, 1] (fn l {
+            xmin := (i + k) >= 0
+            ymin := (j + l) >= 0
+            xmax := (i + k) < (DO List.length board)
+            ymax := (j + l) < (DO List.length board[i])
+            nz   := (k != 0) and (l != 0)
+
+            if xmin and ymin and xmax and ymax and nz DO {
+              if board[i + k][j + l] = "#" DO {
+                neighbors <- neighbors + 1
+              }
+            }
+          })
+        })
+
+        if board[i][j] = "#" DO {
+          if (neighbors != 2) and (neighbors != 3) DO { newBoard[i][j] := "-" }
+        } else DO {
+          if neighbors = 3 DO { newBoard[i][j] := "#" }
+        }
+      })
+    })
+    Computer.DO.return newBoard
+  }
+}
+
+GOL.DO.init 10 10 -> board
+GOL.DO.randomize board -> board
+Computer.DO.print (DO GOL.print board)
+Computer.DO.print "\n"
+Computer.DO.loop (10 times) (fn {
+  GOL.DO.tick board -> board
+  Computer.DO.print (DO GOL.print board)
+  Computer.DO.print "\n"
+})

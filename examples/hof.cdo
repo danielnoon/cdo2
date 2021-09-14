@@ -1,0 +1,10 @@
+add := fn a {
+  fn b {
+    a + b
+  }
+}
+
+addOne := DO add 1
+addTwo := DO add 2
+Computer.DO.print (DO addOne 3)
+Computer.DO.print (DO addTwo 3)

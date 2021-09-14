@@ -1,0 +1,34 @@
+actor MainController {
+  wild := fn req {
+    Computer.DO.loadFileText ("static/" + req["path"]) -> file
+    HTTP.DO.respond req file
+  }
+
+  login := fn req {
+    username := req["body"]["username"]
+    password := req["body"]["password"]
+
+    SQL.DO.prepare "select * from users where username = ?" -> stmt
+    SQL.DO.execute stmt ([username]) -> result
+
+    user := result[0]
+
+    BCrypt.DO.validate password user["password"] -> valid
+
+    if not valid DO {
+      HTTP.DO.error 418 "I'm a teapot"
+    } else DO {
+      
+    }
+  }
+}
+
+mappings := {
+  "login": MainController.login
+}
+
+HTTP.DO.create 8080 -> server
+HTTP.DO.listen server (fn req {
+  handler := mappings[req["path"]] or MainController.wild
+  Computer.DO.call hander req
+})

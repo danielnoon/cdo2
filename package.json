@@ -1,0 +1,22 @@
+{
+  "name": "cdo2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "grammar:compile": "nearleyc src/grammar.ne -o src/grammar.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/nearley": "^2.11.2",
+    "@types/node": "^16.9.1",
+    "moo": "^0.5.1",
+    "nearley": "^2.20.1"
+  }
+}

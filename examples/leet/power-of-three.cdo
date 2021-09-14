@@ -1,0 +1,10 @@
+isPowerOfThree := fn n {
+  ((DO Math.log n / DO Math.log 3) % 1) < 0.00001
+}
+
+Computer.DO.print (DO isPowerOfThree 3)
+Computer.DO.print (DO isPowerOfThree 9)
+Computer.DO.print (DO isPowerOfThree 27)
+Computer.DO.print (DO isPowerOfThree 0)
+Computer.DO.print (DO isPowerOfThree 45)
+ 
