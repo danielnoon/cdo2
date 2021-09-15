@@ -36,8 +36,13 @@ List.add(
 );
 
 List.add(
-  "length",
-  new Func("length", ["list"], new State(builtin), (list: any[]) => list.length)
+  "getLength",
+  new Func(
+    "getLength",
+    ["list"],
+    new State(builtin),
+    (list: any[]) => list.length
+  )
 );
 
 export default List;

@@ -4,6 +4,7 @@ import Func from "../function";
 import { State } from "../state";
 
 const String = new Actor("String");
+
 String.add(
   "getLength",
   new Func(
@@ -13,64 +14,72 @@ String.add(
     (str: string) => str.length
   )
 );
+
 String.add(
-  "getCharAt",
+  "getChar",
   new Func(
     "anonymous",
-    ["str"],
+    ["str", "idx"],
     new State(builtin),
     (str: string, index: number) => str[index]
   )
 );
+
 String.add(
   "getSlice",
   new Func(
     "anonymous",
-    ["str"],
+    ["str", "start", "end"],
     new State(builtin),
     (str: string, start: number, end: number) => str.substring(start, end)
   )
 );
+
 String.add(
-  "getIndexOf",
+  "getIndex",
   new Func(
     "anonymous",
-    ["str"],
+    ["str", "search"],
     new State(builtin),
     (str: string, search: string) => str.indexOf(search)
   )
 );
+
 String.add(
-  "getLastIndexOf",
+  "getLastIndex",
   new Func(
     "anonymous",
-    ["str"],
+    ["str", "search"],
     new State(builtin),
     (str: string, search: string) => str.lastIndexOf(search)
   )
 );
+
 String.add(
   "replace",
   new Func(
     "anonymous",
-    ["str"],
+    ["str", "search", "replace"],
     new State(builtin),
     (str: string, search: string, replace: string) =>
       str.replace(search, replace)
   )
 );
+
 String.add(
   "toLowerCase",
   new Func("anonymous", ["str"], new State(builtin), (str: string) =>
     str.toLowerCase()
   )
 );
+
 String.add(
   "toUpperCase",
   new Func("anonymous", ["str"], new State(builtin), (str: string) =>
     str.toUpperCase()
   )
 );
+
 String.add(
   "concat",
   new Func(
