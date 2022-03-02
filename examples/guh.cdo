@@ -1,0 +1,2 @@
+obj := { "boo": "hi" }
+Computer.DO.print obj["toString"]

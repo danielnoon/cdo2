@@ -13,4 +13,17 @@ Dict.add(
   )
 );
 
+Dict.add(
+  "addAll",
+  new Func(
+    "addAll",
+    ["dict"],
+    new State(builtin),
+    (dict: dict, other: dict) => {
+      Object.assign(dict, other);
+      return dict;
+    }
+  )
+);
+
 export default Dict;

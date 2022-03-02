@@ -1,9 +1,7 @@
-import { readFileSync } from "fs";
 import Actor from "./actor";
 import builtin from "./builtin";
 import Func from "./function";
-import { parse } from "./parser";
-import { rv } from "./primitives";
+import { isPrimitive, NULL, primitive, rv } from "./primitives";
 import { State } from "./state";
 import {
   ArithmeticExpression,
@@ -16,6 +14,7 @@ import {
   FuncExpr,
   IfStatement,
 } from "./types";
+import { Dict } from "./types/Dict";
 
 const arith: Record<ArithOperator, (left: number, right: number) => number> = {
   ADD: (left: number, right: number) => left + right,
@@ -29,6 +28,9 @@ const arith: Record<ArithOperator, (left: number, right: number) => number> = {
 function doArithOp(expr: ArithmeticExpression, state: State) {
   const left = evalExpression(expr.left, state);
   const right = evalExpression(expr.right, state);
+  if (typeof left !== "number" || typeof right !== "number") {
+    return fatalError("Arithmetic operation on non-numbers.");
+  }
   return arith[expr.op](left, right);
 }
 
@@ -45,12 +47,15 @@ const comp: Record<
 };
 
 function doCompOp(expr: CompExpression, state: State) {
-  const left = evalExpression(expr.left, state);
-  const right = evalExpression(expr.right, state);
+  const left = evalExpression(expr.left, state) as any;
+  const right = evalExpression(expr.right, state) as any;
   return comp[expr.op](left, right);
 }
 
-function evalExpression(expr: Expression, state: State): any {
+function evalExpression(
+  expr: Expression,
+  state: State
+): primitive | Actor | void {
   if (expr.type === "number") {
     return expr.value;
   } else if (expr.type === "string") {
@@ -83,7 +88,7 @@ function evalExpression(expr: Expression, state: State): any {
     if (fn instanceof Func) {
       return fn.invoke(...expr.args.map((a) => evalExpression(a, state)));
     } else {
-      return fatalError(`Cannot call non-function ${fn}`);
+      return fatalError(`Cannot call non-function ${String(fn)}`);
     }
   } else if (expr.type === "GETTER") {
     const actor = state.get(expr.actor.value);
@@ -102,24 +107,41 @@ function evalExpression(expr: Expression, state: State): any {
   } else if (expr.type === "TIMES") {
     const n = evalExpression(expr.number, state);
     if (typeof n !== "number") {
-      return fatalError(`Cannot enumerate non-number ${n}`);
+      return fatalError(`Cannot enumerate non-number ${String(n)}`);
     }
     return new Array(n).fill(0).map((_, i) => i);
   } else if (expr.type === "LIST") {
     return expr.elements.map((i) => evalExpression(i, state));
   } else if (expr.type === "DICT") {
-    return expr.entries.reduce(
+    const dict = expr.entries.reduce(
       (acc, p) => ({ ...acc, [p.key.value]: evalExpression(p.value, state) }),
       {}
     );
+    return new Dict(dict);
   } else if (expr.type === "SELECTOR") {
     const base = evalExpression(expr.base, state);
     const key = evalExpression(expr.expr, state);
-    const value = base[key];
-    if (value === undefined) {
-      return fatalError(`${base} does not have key ${key}`);
+    if (base instanceof Dict) {
+      if (!(typeof key === "string")) {
+        return fatalError(`Cannot select non-string key ${String(key)}`);
+      }
+      const value = base.get(key);
+      if (value === undefined) {
+        return fatalError(`Cannot select unknown key ${key}`);
+      }
+    } else if (base instanceof Array) {
+      if (typeof key !== "number") {
+        return fatalError(
+          `Cannot index array with non-number key ${String(key)}`
+        );
+      }
+      const value = base[key];
+      if (value === undefined) {
+        return fatalError(`${base} does not have key ${String(key)}`);
+      }
+      return value;
     }
-    return value;
+    return "lol";
   } else if (expr.type === "LOGICAL") {
     if (expr.op === "NOT") {
       return !evalExpression(expr.operand, state);
@@ -149,7 +171,8 @@ function executeFunc(
   }
 
   if (body.type === "FUNCEXPR") {
-    state.set(rv, evalExpression(body.body, state.clone()));
+    const result = evalExpression(body.body, state.clone());
+    state.set(rv, result ?? NULL);
   } else if (body.type === "FUNCBODY") {
     execute(body.body, state.clone());
   }
@@ -174,7 +197,8 @@ function execute(data: Node[], state: State) {
       );
 
       if (node.action.value === "return" && node.actor.value === "Computer") {
-        state.set(rv, evaluatedArguments[0]);
+        const value = evaluatedArguments[0];
+        state.set(rv, value ?? NULL);
         return;
       }
 
@@ -199,13 +223,28 @@ function execute(data: Node[], state: State) {
       if (node.dest.type === "SELECTOR") {
         const base = evalExpression(node.dest.base, state);
         const key = evalExpression(node.dest.expr, state);
-        base[key] = value;
+        if (base instanceof Dict) {
+          if (typeof key !== "string") {
+            return fatalError(`Cannot select non-string key ${String(key)}`);
+          }
+          if (value instanceof Actor) {
+            return fatalError(`Cannot assign actor to dict key ${String(key)}`);
+          }
+          base.set(key, value ?? NULL);
+        } else if (base instanceof Array) {
+          if (typeof key !== "number") {
+            return fatalError(
+              `Cannot index array with non-number key ${String(key)}`
+            );
+          }
+          base[key] = value;
+        }
       } else {
-        state.set(node.dest.value, value);
+        state.set(node.dest.value, value ?? NULL);
       }
     } else if (node.type === "REASSIGNMENT") {
       const value = evalExpression(node.value, state);
-      const result = state.update(node.dest.value, value);
+      const result = state.update(node.dest.value, value ?? NULL);
       if (result === null) {
         fatalError(`${node.dest.value} is not defined.`);
       }
@@ -220,7 +259,12 @@ function execute(data: Node[], state: State) {
             "Only actions and actor members may be defined here."
           );
         }
-        actor.add(member.dest.value, value);
+        if (value instanceof Actor) {
+          return fatalError(
+            "Only actions and actor members may be defined here."
+          );
+        }
+        actor.add(member.dest.value, value ?? NULL);
       }
     } else if (node.type === "CONDITIONAL") {
       function test(stmt: IfStatement) {
@@ -240,7 +284,7 @@ function execute(data: Node[], state: State) {
     } else if (node.type === "CALL") {
       const func = evalExpression(node.expr, state);
       if (!(func instanceof Func)) {
-        return fatalError(`${func} is not a function.`);
+        return fatalError(`${String(func)} is not a function.`);
       }
 
       const evaluatedArguments = node.args.map((arg) =>
