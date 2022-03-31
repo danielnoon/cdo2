@@ -1,0 +1,22 @@
+dict := { "hello": "world" }
+
+Computer.DO.print dict["hello"]
+Computer.DO.print (DO Dict.has dict "hello")
+Computer.DO.print (DO Dict.has dict "foo")
+
+Dict.DO.add dict "foo" "bar"
+dict["baz"] := "qux"
+
+Computer.DO.print dict["foo"]
+Computer.DO.print dict["baz"]
+
+Dict.DO.addAll dict { "a": 1, "b": 2 }
+
+Computer.DO.print dict["a"]
+Computer.DO.print dict["b"]
+
+Computer.DO.loop dict (fn [key, value] {
+  Computer.DO.print "Loop!"
+  Computer.DO.print key
+  Computer.DO.print value
+})

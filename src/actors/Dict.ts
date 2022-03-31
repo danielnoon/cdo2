@@ -9,7 +9,24 @@ const Dict = new Actor("Dict");
 Dict.add(
   "has",
   new Func("has", ["key"], new State(builtin), (dict: dict, key: string) =>
-    Object.getOwnPropertyNames(dict).includes(key)
+    dict.has(key)
+  )
+);
+
+Dict.add(
+  "add",
+  new Func(
+    "add",
+    ["dict", "key", "value"],
+    new State(builtin),
+    (dict: dict, key: string, value: any) => dict.set(key, value)
+  )
+);
+
+Dict.add(
+  "get",
+  new Func("get", ["key"], new State(builtin), (dict: dict, key: string) =>
+    dict.get(key)
   )
 );
 
@@ -20,10 +37,19 @@ Dict.add(
     ["dict"],
     new State(builtin),
     (dict: dict, other: dict) => {
-      Object.assign(dict, other);
+      for (const [key, value] of other.entries()) {
+        dict.set(key, value);
+      }
       return dict;
     }
   )
+);
+
+Dict.add(
+  "getKeys",
+  new Func("getKeys", ["dict"], new State(builtin), (dict: dict) => [
+    ...dict.keys,
+  ])
 );
 
 export default Dict;

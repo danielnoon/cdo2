@@ -1,15 +1,15 @@
 fizzbuzz := fn n {
-  if (n % 15 = 0) DO {
+  if ((n % 15) = 0) DO {
     Computer.DO.print "fizzbuzz"
-  } else if (n % 5 = 0) DO {
+  } else if ((n % 5) = 0) DO {
     Computer.DO.print "buzz"
-  } else if (n % 3 = 0) DO {
+  } else if ((n % 3) = 0) DO {
     Computer.DO.print "fizz"
   } else DO {
     Computer.DO.print n
   }
 }
 
-Computer.DO.loop (5 times) (fn n {
+Computer.DO.loop (20 times) (fn n {
   DO fizzbuzz n
 })

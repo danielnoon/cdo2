@@ -1,6 +1,7 @@
+import { zip } from "itertools";
 import Actor from "./actor";
 import builtin from "./builtin";
-import Func from "./function";
+import Func, { Param } from "./function";
 import { isPrimitive, NULL, primitive, rv } from "./primitives";
 import { State } from "./state";
 import {
@@ -13,6 +14,8 @@ import {
   Node,
   FuncExpr,
   IfStatement,
+  Unpack,
+  Identifier,
 } from "./types";
 import { Dict } from "./types/Dict";
 
@@ -28,6 +31,7 @@ const arith: Record<ArithOperator, (left: number, right: number) => number> = {
 function doArithOp(expr: ArithmeticExpression, state: State) {
   const left = evalExpression(expr.left, state);
   const right = evalExpression(expr.right, state);
+  // console.log({ left, right });
   if (typeof left !== "number" || typeof right !== "number") {
     return fatalError("Arithmetic operation on non-numbers.");
   }
@@ -71,14 +75,28 @@ function evalExpression(
   } else if (expr.type === "COMP") {
     return doCompOp(expr, state);
   } else if (expr.type === "FUNCTION") {
+    const transformParam = (param: Identifier | Unpack) => {
+      if (param.type === "id") {
+        return {
+          type: "SCALAR",
+          name: param.value,
+        } as const;
+      } else {
+        return {
+          type: "UNPACK",
+          ids: param.ids.map((id) => id.value),
+        } as const;
+      }
+    };
+
     return new Func(
       "anonymous",
-      expr.params.map((p) => p.value),
+      expr.params.map((p) => transformParam(p)),
       state.clone(),
       (...args: any[]) =>
         executeFunc(
           expr.body,
-          expr.params.map((p) => p.value),
+          expr.params.map((p) => transformParam(p)),
           args,
           state
         )
@@ -121,6 +139,7 @@ function evalExpression(
   } else if (expr.type === "SELECTOR") {
     const base = evalExpression(expr.base, state);
     const key = evalExpression(expr.expr, state);
+
     if (base instanceof Dict) {
       if (!(typeof key === "string")) {
         return fatalError(`Cannot select non-string key ${String(key)}`);
@@ -129,6 +148,7 @@ function evalExpression(
       if (value === undefined) {
         return fatalError(`Cannot select unknown key ${key}`);
       }
+      return value;
     } else if (base instanceof Array) {
       if (typeof key !== "number") {
         return fatalError(
@@ -161,13 +181,38 @@ function evalExpression(
 
 function executeFunc(
   body: FuncBody | FuncExpr,
-  params: string[],
+  params: Param[],
   args: any[],
   state: State
 ) {
   state.push({ [rv]: null });
-  for (let i = 0; i < params.length; i++) {
-    state.set(params[i], args[i]);
+  if (params.length !== args.length) {
+    throw fatalError("Wrong number of arguments");
+  }
+
+  for (const [param, arg] of zip(params, args)) {
+    if (param.type === "SCALAR") {
+      if (typeof arg === "undefined") {
+        throw fatalError(`Missing argument ${param.name}`);
+      }
+      state.set(param.name, arg);
+    } else if (param.type === "UNPACK") {
+      if (!(arg instanceof Array)) {
+        throw fatalError(`Cannot unpack non-array ${String(arg)}`);
+      }
+      for (const [i, v] of zip(param.ids, arg)) {
+        state.set(i, v);
+      }
+    } else if (param.type === "OPTIONAL_PARAM") {
+      if (arg === undefined) {
+        continue;
+      }
+      if (param.name) {
+        state.set(param.name, arg);
+      }
+    } else {
+      state.set(param, arg);
+    }
   }
 
   if (body.type === "FUNCEXPR") {
@@ -239,6 +284,15 @@ function execute(data: Node[], state: State) {
           }
           base[key] = value;
         }
+      } else if (node.dest.type === "UNPACK") {
+        if (!(value instanceof Array)) {
+          return fatalError(`Cannot unpack non-array ${String(value)}`);
+        }
+
+        const pairs = zip(node.dest.ids, value);
+        for (const [dest, val] of pairs) {
+          state.set(dest.value, val ?? NULL);
+        }
       } else {
         state.set(node.dest.value, value ?? NULL);
       }
@@ -263,6 +317,9 @@ function execute(data: Node[], state: State) {
           return fatalError(
             "Only actions and actor members may be defined here."
           );
+        }
+        if (member.dest.type === "UNPACK") {
+          throw new Error("Unpacking not available in actor bodies.");
         }
         actor.add(member.dest.value, value ?? NULL);
       }
@@ -290,6 +347,7 @@ function execute(data: Node[], state: State) {
       const evaluatedArguments = node.args.map((arg) =>
         evalExpression(arg, state)
       );
+
       func.invoke(...evaluatedArguments);
     }
   }

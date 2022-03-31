@@ -9,11 +9,29 @@ export class Dict {
     }
   }
 
+  get keys(): IterableIterator<string> {
+    return this.map.keys();
+  }
+
   get(key: string): primitive | undefined {
     return this.map.get(key);
   }
 
   set(key: string, value: primitive): void {
     this.map.set(key, value);
+  }
+
+  has(key: string): boolean {
+    return this.map.has(key);
+  }
+
+  entries(): IterableIterator<[string, primitive]> {
+    return this.map.entries();
+  }
+
+  *[Symbol.iterator]() {
+    for (const [key, value] of this.entries()) {
+      yield [key, value];
+    }
   }
 }

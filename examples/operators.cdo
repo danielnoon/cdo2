@@ -1,0 +1,12 @@
+a := 1 + 1
+b := a * 3
+
+Computer.DO.print a
+Computer.DO.print b
+
+a <- true
+b <- false
+
+Computer.DO.print (a and b)
+
+Computer.DO.print (2 * (2 + 2))

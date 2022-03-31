@@ -37,7 +37,7 @@ export interface Actor extends NodeBase {
 
 export interface Assignment extends NodeBase {
   type: "ASSIGNMENT";
-  dest: Identifier | SelectorExpression;
+  dest: Identifier | SelectorExpression | Unpack;
   value: Expression;
 }
 
@@ -45,6 +45,17 @@ export interface Reassignment extends NodeBase {
   type: "REASSIGNMENT";
   dest: Identifier;
   value: Expression;
+}
+
+export interface Unpack extends NodeBase {
+  type: "UNPACK";
+  ids: Identifier[];
+  value: Expression;
+}
+
+export interface OptionalParam extends NodeBase {
+  type: "OPTIONAL_PARAM";
+  name: Identifier;
 }
 
 export type ArithOperator = "ADD" | "SUB" | "MUL" | "DIV" | "POW" | "MOD";
@@ -143,7 +154,7 @@ export type Expression =
 
 export interface Function extends NodeBase {
   type: "FUNCTION";
-  params: Identifier[];
+  params: (Identifier | Unpack)[];
   body: FuncBody | FuncExpr;
 }
 

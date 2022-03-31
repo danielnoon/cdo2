@@ -4,9 +4,9 @@
     string: { match: /"(?:\\["bfnrt\/\\]|\\u[a-fA-F0-9]{4}|[^"\\])*"/, value: x => x.slice(1, -1) },
     nl: { match: [/\n/,/\r\n/], lineBreaks: true },
     ws: /[ \t]+/,
-    // and: 'and',
-    // or: 'or',
-    // not: 'not',
+    and: 'and',
+    or: 'or',
+    not: 'not',
     // fn: 'fn',
     // actor: 'actor',
     // times: 'times',
@@ -81,9 +81,9 @@ EQ -> %eq               {% id %}
 # ACTOR -> %actor         {% id %}
 LBRACK -> %lbrack       {% id %}
 RBRACK -> %rbrack       {% id %}
-# AND -> %and             {% id %}
-# OR -> %or               {% id %}
-# NOT -> %not             {% id %}
+AND -> %and             {% id %}
+OR -> %or               {% id %}
+NOT -> %not             {% id %}
 # TIMES -> %times         {% id %}
 COMMA -> %comma         {% id %}
 BOOL -> %boolean        {% id %}
@@ -106,40 +106,60 @@ actor -> "actor" __ ID __ LBRACE ___ actorBody ___ RBRACE {% ([,,name,,,,body]) 
 actorBody -> assignment ___ actorBody {% ([a,,as]) => [a, ...as] %}
            | assignment               {% ([a]) => [a] %}
 
-expression -> operand _ POW _ operand      {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "POW", right }) %}
-            | cmp                          {% ([exp]) => ({ type: "COMP", ...exp }) %}
-            | logical                      {% ([exp]) => ({ type: "LOGICAL", ...exp }) %}
-            | muldiv                       {% ([exp]) => ({ type: "ARITH", ...exp }) %}
-            | addsub                       {% ([exp]) => ({ type: "ARITH", ...exp }) %}
-            | LPAREN _ expression _ RPAREN {% ([,,exp]) => exp %}
+expression -> or {% id %}
+              # operand _ POW _ operand      {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "POW", right }) %}
+            # | cmp                          {% ([exp]) => ({ type: "COMP", ...exp }) %}
+            # | logical                      {% ([exp]) => ({ type: "LOGICAL", ...exp }) %}
+            # | muldiv                       {% ([exp]) => ({ type: "ARITH", ...exp }) %}
+            # | addsub                       {% ([exp]) => ({ type: "ARITH", ...exp }) %}
+            # | LPAREN _ expression _ RPAREN {% ([,,exp]) => exp %}
             | expression __ "times"          {% ([n]) => ({ type: "TIMES", number: n }) %}
             | func                         {% id %}
             | invoke                       {% id %}
             | getter                       {% id %}
-            | literal                      {% id %}
-            | ID                           {% id %}
-            | selector                     {% id %}
+            # | literal                      {% id %}
+            # | ID                           {% id %}
+
+
 
 invoke -> "DO" __ expression __ args {% ([,,expr,,args]) => ({ type: "CALL", expr, args }) %}
         | "DO" __ expression         {% ([,,expr]) =>       ({ type: "CALL", expr, args: null }) %}
+		
+or -> or _ OR _ and {% ([left,, op,, right]) => ({ type: "LOGICAL", left, op: "OR", right }) %}
+    | and {% id %}
+	
+and -> and _ AND _ equality {% ([left,, op,, right]) => ({ type: "LOGICAL", left, op: "AND", right }) %}
+     | equality {% id %}
+	 
+equality -> equality _ EQ _ comp {% ([left,, op,, right]) => ({ type: "COMP", left, op: "EQ", right }) %}
+          | equality _ NEQ _ comp {% ([left,, op,, right]) => ({ type: "COMP", left, op: "NEQ", right }) %}
+		      | comp {% id %}
+		  
+comp -> comp _ GTE _ addsub {% ([left,, op,, right]) => ({ type: "COMP", left, op: "GTE", right }) %}
+      | comp _ GT _ addsub {% ([left,, op,, right]) => ({ type: "COMP", left, op: "GT", right }) %}
+      | comp _ LTE _ addsub {% ([left,, op,, right]) => ({ type: "COMP", left, op: "LTE", right }) %}
+      | comp _ LT _ addsub {% ([left,, op,, right]) => ({ type: "COMP", left, op: "LT", right }) %}
+	    | addsub {% id %}
 
-addsub -> operand _ ADD _ operand {% ([left,, op,, right]) => ({ left, op: "ADD", right }) %}
-        | operand _ SUB _ operand {% ([left,, op,, right]) => ({ left, op: "SUB", right }) %}
+math -> addsub {% id %}
 
-muldiv -> operand _ MUL _ operand {% ([left,, op,, right]) => ({ left, op: "MUL", right }) %}
-        | operand _ DIV _ operand {% ([left,, op,, right]) => ({ left, op: "DIV", right }) %}
-        | operand _ MOD _ operand {% ([left,, op,, right]) => ({ left, op: "MOD", right }) %}
-    
-cmp -> operand _ GTE _ operand {% ([left,, op,, right]) => ({ left, op: "GEQ", right }) %}
-     | operand _ LTE _ operand {% ([left,, op,, right]) => ({ left, op: "LEQ", right }) %}
-     | operand _ GT _ operand  {% ([left,, op,, right]) => ({ left, op: "GT", right }) %}
-     | operand _ LT _ operand  {% ([left,, op,, right]) => ({ left, op: "LT", right }) %}
-     | operand _ NEQ _ operand {% ([left,, op,, right]) => ({ left, op: "NEQ", right }) %}
-     | operand _ EQ _ operand  {% ([left,, op,, right]) => ({ left, op: "EQ", right }) %}
+addsub -> addsub _ ADD _ muldiv {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "ADD", right }) %}
+        | addsub _ SUB _ muldiv {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "SUB", right }) %}
+		    | muldiv {% id %}
 
-logical -> operand _ "and" _ operand {% ([left,, op,, right]) => ({ left, op: "AND", right }) %}
-         | operand _ "or" _ operand  {% ([left,, op,, right]) => ({ left, op: "OR", right }) %}
-         | "not" _ operand           {% ([,,operand]) => ({ op: "NOT", operand }) %}
+muldiv -> muldiv _ MUL _ pow {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "MUL", right }) %}
+        | muldiv _ DIV _ pow {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "DIV", right }) %}
+        | muldiv _ MOD _ pow {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "MOD", right }) %}
+		    | pow {% id %}
+		
+pow -> group _ POW _ pow {% ([left,, op,, right]) => ({ type: "ARITH", left, op: "POW", right }) %}
+     | group {% id %}
+	   | group {% id %}
+	 
+group -> LPAREN _ expression _ RPAREN {% ([,,exp]) => exp %}
+       | literal {% id %}
+       | ID {% id %}
+       | selector                     {% id %}
 
 operand -> expression {% id %}
 
@@ -150,7 +170,9 @@ func -> "fn" (__ parameter {% ([,p]) => p %}):* _ LBRACE fbody RBRACE {% ([,para
 fbody -> ___ body ___       {% ([,body]) => ({ type: 'FUNCBODY', body }) %}
        | ___ expression ___ {% ([,body]) => ({ type: 'FUNCEXPR', body }) %}
 
-parameter -> ID {% id %}
+parameter -> ID     {% id %}
+           | unpack {% id %}
+           | "?" _ ID {% ([,id]) => ({ type: "OPTIONAL_PARAM", name: id }) %}
 
 line -> instruction  {% id %}
       | assignment   {% id %}
@@ -158,9 +180,9 @@ line -> instruction  {% id %}
       | invoke       {% id %}
       | ifStatement  {% id %}
 
-assignment -> (ID | selector) _ DEFINE _ expression  {% ([dest,,,, expr]) => ({ type: "ASSIGNMENT", dest: dest[0], value: expr }) %}
+assignment -> (ID | selector | unpack) _ DEFINE _ expression  {% ([dest,,,, expr]) => ({ type: "ASSIGNMENT", dest: dest[0], value: expr }) %}
 
-reassignment -> (ID | selector) _ REASSIGN _ expression  {% ([dest,,,, expr]) => ({ type: "REASSIGNMENT", dest: dest[0], value: expr }) %}
+reassignment -> (ID | selector | unpack) _ REASSIGN _ expression  {% ([dest,,,, expr]) => ({ type: "REASSIGNMENT", dest: dest[0], value: expr }) %}
 
 instruction -> call _ ASSIGN _ ID {% ([call,,,, assign]) => ({ type: 'INSTRUCTION', ...call, assign}) %}
     | call                        {% ([call]) => ({ type: 'INSTRUCTION', ...call, assign: null}) %}
@@ -170,6 +192,10 @@ call -> command __ args {% ([command,, args]) => ({...command, args}) %}
 
 command -> ID _ DOT _ "DO" _  DOT _ ID {% ([actor,,,,,,,, action]) => ({actor, action}) %}
 
+unpack -> unpackList {% id %}
+
+unpackList -> LBRACK ___ (ID | selector {% id %}) _ (COMMA ___ (ID | selector {% id %}) {% ([,,id]) => id %}):* RBRACK {% ([,,id,,rest]) => ({ type: "UNPACK", ids: [id, ...rest].map(([el]) => el)}) %}
+
 listLiteral -> LBRACK ___ listBody ___ RBRACK {% ([,,elements]) => ({ type: "LIST", elements }) %}
              | LBRACK _ RBRACK                {% () => ({ type: "LIST", elements: [] }) %}
 
@@ -177,6 +203,7 @@ listBody -> expression _ COMMA ___ listBody {% ([expr,,,,body]) => [expr, ...bod
           | expression                      {% ([expr]) => [expr] %}
 
 dictLiteral -> LBRACE ___ dictBody ___ RBRACE {% ([,,entries]) => ({ type: "DICT", entries }) %}
+             | LBRACE _ RBRACE                {% () => ({ type: "DICT", entries: [] }) %}
 
 dictBody -> dictEntry _ COMMA ___ dictBody {% ([entry,,,,body]) => [entry, ...body] %}
           | dictEntry                      {% ([e]) => [e] %}

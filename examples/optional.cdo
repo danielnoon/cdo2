@@ -1,0 +1,7 @@
+
+test := fn x ? y {
+  Computer.DO.print x
+  Computer.DO.print y
+}
+
+DO test

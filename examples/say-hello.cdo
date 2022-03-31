@@ -10,6 +10,10 @@ fizzbuzz := fn n {
   }
 }
 
+t := 5 times
+
+Computer.DO.print t
+
 Computer.DO.loop (5 times) (fn n {
   DO fizzbuzz n
 })
